@@ -29,6 +29,9 @@ import view.MenuPanel;
 import view.PlayerView;
 import view.GameWindow.Scene;
 import controller.SoundEffect;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.FileNotFoundException;
 
 /**
  * gestione del gioco
@@ -351,19 +354,23 @@ public class GameManager extends Observable
 	 * aggiorna i dati del profilo
 	 * @param n
 	 */
-	public static void updateProfileData(int n)
-	{
+	public static void updateProfileData(int n) {
 		FileWriter myWriter;
 		try {
-			myWriter = new FileWriter(System.getProperty("user.dir")+"\\src\\saves\\profile"+n+".dat");
-			myWriter.write(profiles[n-1].getAllInfo());
-		    myWriter.close();
+			// Usa una directory di salvataggio esterna
+			String saveDir = System.getProperty("user.home") + "/saves/";
+			File dir = new File(saveDir);
+			if (!dir.exists()) {
+				dir.mkdirs(); // Crea la directory se non esiste
+			}
+			myWriter = new FileWriter(dir + "profile" + n + ".dat");
+			myWriter.write(profiles[n - 1].getAllInfo());
+			myWriter.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
+
 	/**
 	 * carica i dati dei profili
 	 * @throws IOException
@@ -379,32 +386,44 @@ public class GameManager extends Observable
 	 * @param profileN
 	 * @throws IOException
 	 */
-	public static void loadProfileData(int profileN) throws IOException
-	{
-		if(profileN < 1 || profileN > 3)
-		{
+	public static void loadProfileData(int profileN) throws IOException {
+		if (profileN < 1 || profileN > 3) {
 			System.out.println("Invalid Profile number to update. Updating all profiles...");
-			loadProfileData();
+			loadProfileData();  // Presumendo che ci sia un altro metodo che gestisce il caricamento di tutti i profili
 			return;
 		}
+
 		Profile p = new Profile();
-		
-		BufferedReader br = new BufferedReader(new FileReader(System.getProperty("user.dir") + "\\src\\saves\\profile" + profileN + ".dat" ));
-		
-		//profile settings
-		p.setName(br.readLine());
-		p.setAvatar(Integer.parseInt(br.readLine()));
-		
-		//profile stats
-		p.setLastScore(Integer.parseInt(br.readLine()));
-		p.setTotalScore(Integer.parseInt(br.readLine()));
-		p.setGamesWon(Integer.parseInt(br.readLine()));
-		p.setGamesLost(Integer.parseInt(br.readLine()));
-		
-		profiles[profileN-1] = p;
-		
-		br.close();
+		String filePath = "/saves/profile" + profileN + ".dat";
+
+		// Proviamo a leggere il file come risorsa
+		try (InputStream is = GameManager.class.getResourceAsStream(filePath);
+			 BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+
+			if (is == null) {
+				throw new FileNotFoundException("File non trovato: " + filePath);
+			}
+
+			// Imposta i dati del profilo
+			p.setName(br.readLine());
+			p.setAvatar(Integer.parseInt(br.readLine()));
+
+			// Imposta le statistiche del profilo
+			p.setLastScore(Integer.parseInt(br.readLine()));
+			p.setTotalScore(Integer.parseInt(br.readLine()));
+			p.setGamesWon(Integer.parseInt(br.readLine()));
+			p.setGamesLost(Integer.parseInt(br.readLine()));
+
+			profiles[profileN - 1] = p;
+
+		} catch (IOException e) {
+			System.err.println("Errore nel caricamento dei dati del profilo: " + e.getMessage());
+			throw e;  // Rilancia l'eccezione per gestirla a livello superiore, se necessario
+		} catch (NumberFormatException e) {
+			System.err.println("Errore di formato nei dati del profilo: " + e.getMessage());
+		}
 	}
+
 	//metodi di menu
 	/**
 	 * va al game loop
